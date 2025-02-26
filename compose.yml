@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  go_cron_service:
+    build: .
+    container_name: go_cron_service
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+    environment:
+      - TZ=UTC
