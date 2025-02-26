@@ -54,11 +54,11 @@ func FormatAddresses(addresses []*imap.Address) string {
 func ListInboxHeaders(conn *client.Client, cfg *utils.Config, since time.Time) ([]*imap.Message, *imap.SeqSet, error) {
 	const batchSize = 50
 
-	now := time.Now()
-	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	// now := time.Now()
+	// startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 
 	criteria := imap.NewSearchCriteria()
-	criteria.Since = startOfDay
+	criteria.Since = since
 
 	// Выполняем поиск писем по критериям
 	uids, err := conn.Search(criteria)
@@ -96,6 +96,7 @@ func ListInboxHeaders(conn *client.Client, cfg *utils.Config, since time.Time) (
 		// Читаем заголовки
 		for msg := range messages {
 			if msg.Envelope == nil {
+				log.Println("Envelope is nil")
 				continue
 			}
 			fromEmail := msg.Envelope.From[0].Address()

@@ -2,6 +2,7 @@ package storage
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -68,16 +69,39 @@ func GetLastEmailDate(db *sql.DB) (time.Time, error) {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// Возвращаем "нулевое" значение времени (unix timestamp 0)
-			return time.Now(), nil
+			now := time.Now()
+			startOfDay := time.Date(now.Year(), now.Month(), now.Day()-1, 0, 0, 0, 0, now.Location())
+			return startOfDay, nil
 		}
 		return time.Time{}, err // Возвращаем ошибку, если другая причина
 	}
-	layout := "2006-01-02 15:04:05 -0700 UTC"
-	parseTime, err := time.Parse(layout, lastDate)
+	parseTime, err := parseDate(lastDate)
 
 	if err != nil {
 		return time.Time{}, err
 	}
 
 	return parseTime, nil
+}
+
+func parseDate(lastDate string) (time.Time, error) {
+	// Форматы для парсинга
+	layouts := []string{
+		"2006-01-02 15:04:05 -0700 UTC",   // Первый формат
+		"2006-01-02 15:04:05 +0000 +0000", // Второй формат
+	}
+
+	var parseTime time.Time
+	var err error
+
+	// Пробуем каждый формат
+	for _, layout := range layouts {
+		parseTime, err = time.Parse(layout, lastDate)
+		if err == nil {
+			return parseTime, nil // Успех, возвращаем результат
+		}
+	}
+
+	// Если ни один формат не подошел
+	return time.Time{}, fmt.Errorf("invalid date format")
 }

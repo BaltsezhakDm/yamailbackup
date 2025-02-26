@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/KrasovD/yamailbackup/internal/utils"
 )
@@ -58,12 +59,20 @@ func GetListCloud(cfg *utils.Config) error {
 }
 
 func UploadToCloud(cfg *utils.Config, filePath string, fileBuffer *bytes.Buffer) error {
+
+	if fileBuffer.Len() == 0 {
+		return fmt.Errorf("file buffer is empty")
+	}
+
 	var oauthURL = fmt.Sprintf(
 		"%s%s",
 		cfg.Backup.Host,
 		"/v1/disk/resources/upload/",
 	)
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 30 * time.Second, // Установить таймаут 30 секунд
+	}
+
 	req, err := http.NewRequest(
 		"GET", oauthURL, nil,
 	)
@@ -99,13 +108,27 @@ func UploadToCloud(cfg *utils.Config, filePath string, fileBuffer *bytes.Buffer)
 	if err != nil {
 		return err
 	}
-	resp, err = client.Do(req)
-	if err != nil {
-		return err
-	}
 
-	if resp.StatusCode != 201 {
-		return fmt.Errorf("failed to upload file: %s", resp.Status)
+	const maxRetries = 3
+	for retries := 0; retries < maxRetries; retries++ {
+		resp, err = client.Do(req)
+		if err != nil {
+			if retries == maxRetries-1 {
+				return err // Последняя ошибка, возвращаем
+			}
+			time.Sleep(2 * time.Second) // Задержка перед повторной попыткой
+			continue
+		}
+
+		if resp.StatusCode != 201 {
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return fmt.Errorf("failed to read error body: %v", err)
+			}
+			return fmt.Errorf("failed to upload file: %s, response body: %s", resp.Status, string(body))
+		}
+		break
+
 	}
 	return nil
 }

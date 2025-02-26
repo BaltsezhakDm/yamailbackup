@@ -64,7 +64,7 @@ func GetAttachments(msg *imap.Message, cfg *utils.Config) error {
 
 				err = backup.UploadToCloud(cfg, filePath, fileBuffer)
 				if err != nil {
-					return err
+					return fmt.Errorf("failed to save attachment: %v", err)
 				}
 				log.Println("Download file:", filename, "Date:", msg.Envelope.Date)
 				// Информация о сохранении
