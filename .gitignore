@@ -1,4 +1,5 @@
 .env
-config/config.yaml
+config/*
+!config/config.example.yaml
 .vscode
 messages.db

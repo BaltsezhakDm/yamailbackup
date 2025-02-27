@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -15,8 +16,9 @@ import (
 func main() {
 	// Загрузка конфигов
 	log.Println("Starting yamailbackup...")
-
-	config, err := utils.LoadConfig("config/config.yaml")
+	configPath := flag.String("config", "config/config.yaml", "Path to config file")
+	flag.Parse()
+	config, err := utils.LoadConfig(*configPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			config, err = utils.LoadConfig("/app/config/config.yaml")
