@@ -1,1 +1,3 @@
-*/20 * * * * /app/app >> /proc/1/fd/1 2>> /proc/1/fd/2
+*/20 * * * * /app/app -config=/app/config/config.yaml >> /proc/1/fd/1 2>> /proc/1/fd/2
+1-59/20 * * * * /app/app -config=/app/config/config.baltyre.yaml >> /proc/1/fd/1 2>> /proc/1/fd/2
+2-59/20 * * * * /app/app -config=/app/config/config.sttrd.yaml >> /proc/1/fd/1 2>> /proc/1/fd/2

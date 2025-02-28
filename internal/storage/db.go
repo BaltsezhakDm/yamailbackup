@@ -87,10 +87,12 @@ func GetLastEmailDate(db *sql.DB) (time.Time, error) {
 func parseDate(lastDate string) (time.Time, error) {
 	// Форматы для парсинга
 	layouts := []string{
-		"2006-01-02 15:04:05 -0700 UTC",   // Первый формат
-		"2006-01-02 15:04:05 +0000 +0000", // Второй формат
+		"2006-01-02 15:04:05",             // YYYY-MM-DD HH:MM:SS
+		"2006-01-02T15:04:05Z07:00",       // ISO 8601
+		"02/01/2006 15:04:05",             // DD/MM/YYYY HH:MM:SS
+		"2006-01-02 15:04:05 -0700 MST",   // 2025-02-27 03:51:09 +0000 UTC
+		"2006-01-02 15:04:05 -0700 -0700", // 2025-02-27 03:51:09 +0000 +0000
 	}
-
 	var parseTime time.Time
 	var err error
 
