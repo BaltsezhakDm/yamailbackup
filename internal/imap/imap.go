@@ -140,6 +140,10 @@ func FetchEmailBodies(conn *client.Client, filteredSeqset *imap.SeqSet) ([]*imap
 
 	// Читаем тела писем
 	for msg := range bodyMessages {
+		if msg == nil {
+			log.Println("Received nil message in bodyMessages")
+			continue
+		}
 		bodyMap[msg.SeqNum] = msg
 	}
 
