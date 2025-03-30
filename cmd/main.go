@@ -80,6 +80,15 @@ func main() {
 	}
 
 	for _, email := range bodies {
+		if email == nil {
+			log.Println("Skipping nil email")
+			continue
+		}
+		if email.Envelope == nil {
+			log.Printf("Skipping email with nil envelope (UID %d)", email.Uid)
+			continue
+		}
+
 		// Проверяем, есть ли уже такое сообщение в базе данных
 		exists, err := storage.EmailExists(db, email.Envelope.MessageId)
 		if err != nil {
@@ -90,11 +99,12 @@ func main() {
 			// Скачиваем вложения
 			err = imap.GetAttachments(email, config)
 			if err != nil {
-				log.Fatal("Error downloading attachments:", err)
+				log.Printf("Error downloading attachments for UID %d: %v", email.Uid, err)
+				continue
 			}
 
-			//Сохраняем письмо в базе данных
-			err := storage.SaveEmail(
+			// Сохраняем письмо в базе данных
+			err = storage.SaveEmail(
 				db,
 				storage.Email{
 					ID:        int(email.Uid),
@@ -105,12 +115,12 @@ func main() {
 				},
 			)
 			if err != nil {
-				log.Fatal("Error saving email:", err)
+				log.Printf("Error saving email UID %d: %v", email.Uid, err)
+				continue
 			}
 
 			counter++
 		}
-
 	}
 
 }

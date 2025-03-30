@@ -119,6 +119,9 @@ func ListInboxHeaders(conn *client.Client, cfg *utils.Config, since time.Time) (
 
 // FetchEmailBodies загружает тела только у отфильтрованных писем.
 func FetchEmailBodies(conn *client.Client, filteredSeqset *imap.SeqSet) ([]*imap.Message, error) {
+	if filteredSeqset == nil {
+		return nil, nil // Нет подходящих писем
+	}
 	if filteredSeqset.Empty() {
 		return nil, nil // Нет подходящих писем
 	}

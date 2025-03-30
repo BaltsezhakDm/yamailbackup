@@ -61,27 +61,26 @@ func GetLastEmailID(db *sql.DB) (int, error) {
 }
 
 func GetLastEmailDate(db *sql.DB) (time.Time, error) {
-	var lastDate string
+	var lastDate sql.NullString
 
 	query := `SELECT date FROM emails ORDER BY date DESC LIMIT 1`
 	err := db.QueryRow(query).Scan(&lastDate)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			// Возвращаем "нулевое" значение времени (unix timestamp 0)
-			now := time.Now()
-			startOfDay := time.Date(now.Year(), now.Month(), now.Day()-1, 0, 0, 0, 0, now.Location())
-			return startOfDay, nil
-		}
-		return time.Time{}, err // Возвращаем ошибку, если другая причина
-	}
-	parseTime, err := parseDate(lastDate)
-
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		return time.Time{}, err
 	}
 
-	return parseTime, nil
+	if !lastDate.Valid || lastDate.String == "" {
+		// Если в базе нет писем — возвращаем вчерашнее утро
+		now := time.Now()
+		startOfDay := time.Date(now.Year(), now.Month(), now.Day()-1, 0, 0, 0, 0, now.Location())
+		return startOfDay, nil
+	}
+
+	parsed, err := parseDate(lastDate.String)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return parsed, nil
 }
 
 func parseDate(lastDate string) (time.Time, error) {
