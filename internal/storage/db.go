@@ -70,9 +70,9 @@ func GetLastEmailDate(db *sql.DB) (time.Time, error) {
 	}
 
 	if !lastDate.Valid || lastDate.String == "" {
-		// Если в базе нет писем — возвращаем вчерашнее утро
+		// Если в базе нет писем — возвращаем сегодня 00:00:00
 		now := time.Now()
-		startOfDay := time.Date(now.Year(), now.Month(), now.Day()-1, 0, 0, 0, 0, now.Location())
+		startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 		return startOfDay, nil
 	}
 

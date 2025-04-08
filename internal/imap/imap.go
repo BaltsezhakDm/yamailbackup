@@ -53,9 +53,7 @@ func FormatAddresses(addresses []*imap.Address) string {
 // ListInboxHeaders загружает заголовки всех писем и фильтрует нужные.
 func ListInboxHeaders(conn *client.Client, cfg *utils.Config, since time.Time) ([]*imap.Message, *imap.SeqSet, error) {
 	const batchSize = 50
-
-	// now := time.Now()
-	// startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	since = since.Add(-20 * time.Minute)
 
 	criteria := imap.NewSearchCriteria()
 	criteria.Since = since
