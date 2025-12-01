@@ -59,11 +59,15 @@ func main() {
 	defer conn.Logout()
 	// Получение списка почтовых ящиков
 
-	// Выбираем "INBOX"
-	mbox, err := conn.Select("INBOX", false)
-	if err != nil {
-		log.Fatal("Error selecting mailbox:", err)
+	mailbox := config.IMAP.Mailbox
+	if mailbox == "" {
+		mailbox = "INBOX"
 	}
+	mbox, err := conn.Select(mailbox, false)
+	if err != nil {
+		log.Fatalf("Error selecting mailbox %s: %v", mailbox, err)
+	}
+	fmt.Println("Using mailbox:", mailbox)
 	counter := 0
 
 	fmt.Println("Messages:", mbox.Messages)

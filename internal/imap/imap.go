@@ -98,7 +98,9 @@ func ListInboxHeaders(conn *client.Client, cfg *utils.Config, since time.Time) (
 				continue
 			}
 			fromEmail := msg.Envelope.From[0].Address()
-			if utils.ShouldProcessEmail(cfg, fromEmail) {
+			subject := msg.Envelope.Subject
+
+			if utils.ShouldProcessEmail(cfg, fromEmail, subject) {
 				batch = append(batch, msg)
 				filteredSeqset.AddNum(msg.SeqNum)
 			}
@@ -134,6 +136,7 @@ func FetchEmailBodies(conn *client.Client, filteredSeqset *imap.SeqSet) ([]*imap
 		bodyDone <- conn.Fetch(filteredSeqset, []imap.FetchItem{
 			imap.FetchEnvelope,
 			imap.FetchItem("BODY.PEEK[]"),
+			imap.FetchUid,
 		}, bodyMessages)
 	}()
 
