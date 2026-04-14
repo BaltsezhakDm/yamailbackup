@@ -69,6 +69,7 @@ func ListInboxHeaders(conn *client.Client, cfg *utils.Config, since time.Time) (
 
 	var result []*imap.Message
 	filteredSeqset := new(imap.SeqSet)
+	uniqueSubjects := make(map[string]*imap.Message)
 
 	// Дробим на батчи
 	for i := 0; i < len(uids); i += batchSize {
@@ -88,8 +89,6 @@ func ListInboxHeaders(conn *client.Client, cfg *utils.Config, since time.Time) (
 			done <- conn.Fetch(seqset, []imap.FetchItem{imap.FetchEnvelope}, messages)
 		}()
 
-		batch := []*imap.Message{}
-
 		log.Println("Fetching headers..." + fmt.Sprint(i) + " - " + fmt.Sprint(end))
 		// Читаем заголовки
 		for msg := range messages {
@@ -107,19 +106,23 @@ func ListInboxHeaders(conn *client.Client, cfg *utils.Config, since time.Time) (
 			subject := msg.Envelope.Subject
 
 			if utils.ShouldProcessEmail(cfg, fromEmail, subject) {
-				batch = append(batch, msg)
-				filteredSeqset.AddNum(msg.SeqNum)
+				if existing, ok := uniqueSubjects[subject]; !ok || msg.SeqNum > existing.SeqNum {
+					uniqueSubjects[subject] = msg
+				}
 			}
 		}
 
 		if err := <-done; err != nil {
 			return nil, nil, err
 		}
-
-		result = append(result, batch...)
-		log.Println("Headers processed:", len(result))
 	}
 
+	for _, msg := range uniqueSubjects {
+		result = append(result, msg)
+		filteredSeqset.AddNum(msg.SeqNum)
+	}
+
+	log.Println("Headers processed and unique subjects filtered:", len(result))
 	return result, filteredSeqset, nil
 }
 
