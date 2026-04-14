@@ -59,12 +59,16 @@ func GetAttachments(msg *imap.Message, cfg *utils.Config) error {
 
 				_, err = io.Copy(fileBuffer, part.Body)
 				if err != nil {
-					return fmt.Errorf("failed to save attachment: %v", err)
+					log.Printf("Failed to copy attachment %s: %v", filename, err)
+					continue
 				}
 
+				// Ensure we don't have leading slashes that might cause issues with some cloud providers
+				// depending on how they handle paths. backup.UploadToCloud prepends a slash.
 				err = backup.UploadToCloud(cfg, filePath, fileBuffer)
 				if err != nil {
-					return fmt.Errorf("failed to save attachment: %v", err)
+					log.Printf("Failed to upload attachment %s: %v", filename, err)
+					continue
 				}
 				log.Println("Download file:", filename, "Date:", msg.Envelope.Date)
 				// Информация о сохранении

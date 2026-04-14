@@ -97,6 +97,12 @@ func ListInboxHeaders(conn *client.Client, cfg *utils.Config, since time.Time) (
 				log.Println("Envelope is nil")
 				continue
 			}
+
+			if len(msg.Envelope.From) == 0 {
+				log.Printf("Skipping email with no sender (SeqNum %d)", msg.SeqNum)
+				continue
+			}
+
 			fromEmail := msg.Envelope.From[0].Address()
 			subject := msg.Envelope.Subject
 

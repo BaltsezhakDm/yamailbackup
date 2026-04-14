@@ -59,7 +59,6 @@ func GetListCloud(cfg *utils.Config) error {
 }
 
 func UploadToCloud(cfg *utils.Config, filePath string, fileBuffer *bytes.Buffer) error {
-
 	if fileBuffer.Len() == 0 {
 		return fmt.Errorf("file buffer is empty")
 	}
@@ -70,12 +69,10 @@ func UploadToCloud(cfg *utils.Config, filePath string, fileBuffer *bytes.Buffer)
 		"/v1/disk/resources/upload/",
 	)
 	client := &http.Client{
-		Timeout: 30 * time.Second, // Установить таймаут 30 секунд
+		Timeout: 30 * time.Second,
 	}
 
-	req, err := http.NewRequest(
-		"GET", oauthURL, nil,
-	)
+	req, err := http.NewRequest("GET", oauthURL, nil)
 	if err != nil {
 		return err
 	}
@@ -89,46 +86,46 @@ func UploadToCloud(cfg *utils.Config, filePath string, fileBuffer *bytes.Buffer)
 	if err != nil {
 		return err
 	}
-
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed to get upload URL: %s, body: %s", resp.Status, string(body))
 	}
+
 	var data UploadResponse
-	err = json.Unmarshal([]byte(body), &data)
-	if err != nil {
-		return err
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return fmt.Errorf("failed to decode upload response: %v", err)
 	}
 
-	req, err = http.NewRequest(
-		data.Method, data.Href, fileBuffer,
-	)
-	if err != nil {
-		return err
-	}
-
+	fileBytes := fileBuffer.Bytes()
 	const maxRetries = 3
+	var lastErr error
+
 	for retries := 0; retries < maxRetries; retries++ {
-		resp, err = client.Do(req)
+		// Re-create request for each retry because the body might have been closed/drained
+		uploadReq, err := http.NewRequest(data.Method, data.Href, bytes.NewReader(fileBytes))
 		if err != nil {
-			if retries == maxRetries-1 {
-				return err // Последняя ошибка, возвращаем
-			}
-			time.Sleep(2 * time.Second) // Задержка перед повторной попыткой
+			return fmt.Errorf("failed to create upload request: %v", err)
+		}
+
+		uploadResp, err := client.Do(uploadReq)
+		if err != nil {
+			lastErr = err
+			time.Sleep(2 * time.Second)
 			continue
 		}
 
-		if resp.StatusCode != 201 {
-			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				return fmt.Errorf("failed to read error body: %v", err)
-			}
-			return fmt.Errorf("failed to upload file: %s, response body: %s", resp.Status, string(body))
+		if uploadResp.StatusCode != http.StatusCreated && uploadResp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(uploadResp.Body)
+			uploadResp.Body.Close()
+			lastErr = fmt.Errorf("failed to upload file: %s, response body: %s", uploadResp.Status, string(body))
+			time.Sleep(2 * time.Second)
+			continue
 		}
-		break
-
+		uploadResp.Body.Close()
+		return nil
 	}
-	return nil
+
+	return fmt.Errorf("upload failed after %d retries: %v", maxRetries, lastErr)
 }
