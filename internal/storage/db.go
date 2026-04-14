@@ -9,8 +9,8 @@ import (
 )
 
 // InitDB инициализирует БД и создает таблицу, если её нет
-func InitDB() (*sql.DB, error) {
-	db, err := sql.Open("sqlite", "messages.db")
+func InitDB(dbPath string) (*sql.DB, error) {
+	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, err
 	}

@@ -14,6 +14,12 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
 	// Загрузка конфигов
 	log.Println("Starting yamailbackup...")
 	configPath := flag.String("config", "config/config.yaml", "Path to config file")
@@ -24,7 +30,7 @@ func main() {
 			config, err = utils.LoadConfig("/app/config/config.yaml")
 		}
 		if err != nil {
-			log.Fatal("Error loading config:", err)
+			return fmt.Errorf("error loading config: %v", err)
 		}
 	}
 
@@ -33,16 +39,16 @@ func main() {
 	fmt.Println("Save path:", config.Backup.SavePath)
 
 	//Подключени к базе данных
-	db, err := storage.InitDB()
+	db, err := storage.InitDB("messages.db")
 	if err != nil {
-		log.Fatal("Error initializing database:", err)
+		return fmt.Errorf("error initializing database: %v", err)
 	}
 	defer db.Close()
 
 	// Проверка последнего MailID
 	lastEmailDate, err := storage.GetLastEmailDate(db)
 	if err != nil {
-		log.Fatal("Error getting last email Date:", err)
+		return fmt.Errorf("error getting last email Date: %v", err)
 	}
 
 	// Подключение к IMAP
@@ -53,7 +59,7 @@ func main() {
 		config.IMAP.Password,
 	)
 	if err != nil {
-		log.Fatal("Error connecting to IMAP server:", err)
+		return fmt.Errorf("error connecting to IMAP server: %v", err)
 	}
 
 	defer conn.Logout()
@@ -65,7 +71,7 @@ func main() {
 	}
 	mbox, err := conn.Select(mailbox, false)
 	if err != nil {
-		log.Fatalf("Error selecting mailbox %s: %v", mailbox, err)
+		return fmt.Errorf("error selecting mailbox %s: %v", mailbox, err)
 	}
 	fmt.Println("Using mailbox:", mailbox)
 	counter := 0
@@ -75,12 +81,12 @@ func main() {
 
 	_, seqset, err := imap.ListInboxHeaders(conn, config, lastEmailDate)
 	if err != nil {
-		log.Fatal("Failed to get headers:", err)
+		return fmt.Errorf("failed to get headers: %v", err)
 	}
 
 	bodies, err := imap.FetchEmailBodies(conn, seqset)
 	if err != nil {
-		log.Fatal("Failed to get bodies:", err)
+		return fmt.Errorf("failed to get bodies: %v", err)
 	}
 
 	for _, email := range bodies {
@@ -96,7 +102,7 @@ func main() {
 		// Проверяем, есть ли уже такое сообщение в базе данных
 		exists, err := storage.EmailExists(db, email.Envelope.MessageId)
 		if err != nil {
-			log.Fatal("Error checking email existence:", err)
+			return fmt.Errorf("error checking email existence: %v", err)
 		}
 
 		if !exists {
@@ -126,5 +132,6 @@ func main() {
 			counter++
 		}
 	}
-
+	log.Printf("Successfully processed %d emails", counter)
+	return nil
 }
