@@ -1,19 +1,22 @@
-FROM golang:1.24-alpine
+FROM python:3.12-alpine
 
 WORKDIR /app
 
-# Устанавливаем crond
+# Install system dependencies
 RUN apk add --no-cache tzdata curl bash busybox-extras
 
-# Копируем приложение
+# Copy requirements and install python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application
 COPY . .
 
-RUN go build -o app cmd/main.go
+# Set permissions
+RUN chmod +x /app/main.py
 
-RUN chmod +x /app/app
-
-# Копируем crontab и устанавливаем его
+# Copy crontab and install it
 COPY crontab /etc/crontabs/root
 
-# Запускаем crond в foreground с логированием
+# Start crond in foreground with logging
 CMD ["crond", "-f", "-l", "8"]
