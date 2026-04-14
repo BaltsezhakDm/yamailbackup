@@ -16,7 +16,7 @@ def process_mailbox(cfg: Config, last_email_date: datetime, db_conn):
 
     with MailBox(cfg.imap.server, port=cfg.imap.port).login(cfg.imap.username, cfg.imap.password, cfg.imap.mailbox) as mailbox:
         # Search for messages since date
-        messages = mailbox.fetch(AND(date_ge=search_since))
+        messages = mailbox.fetch(AND(date_gte=search_since))
 
         unique_subjects = {}
 
