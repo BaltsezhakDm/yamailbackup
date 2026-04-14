@@ -17,24 +17,25 @@ def config():
 def db_conn():
     return init_db(":memory:")
 
-def test_process_mailbox(config, db_conn, mocker):
+def test_process_mailbox(config, db_conn, monkeypatch):
     # Mock MailBox
     mock_mailbox_instance = MagicMock()
-    mock_mailbox_class = mocker.patch("imap_client.MailBox", return_value=mock_mailbox_instance)
+    mock_mailbox_class = MagicMock(return_value=mock_mailbox_instance)
+    monkeypatch.setattr("imap_client.MailBox", mock_mailbox_class)
     mock_mailbox_instance.login.return_value.__enter__.return_value = mock_mailbox_instance
 
     # Mock messages
     msg1 = MagicMock()
     msg1.subject = "Subject 1"
     msg1.from_ = "sender@test.com"
-    msg1.message_id = "id1"
+    msg1.uid = "id1"
     msg1.date = datetime(2025, 1, 1, 10, 0, 0)
     msg1.attachments = [MagicMock(filename="file1.pdf", payload=b"data1")]
 
     msg2 = MagicMock()
     msg2.subject = "Subject 2"
     msg2.from_ = "sender@test.com"
-    msg2.message_id = "id2"
+    msg2.uid = "id2"
     msg2.date = datetime(2025, 1, 1, 11, 0, 0)
     msg2.attachments = []
 
@@ -49,7 +50,8 @@ def test_process_mailbox(config, db_conn, mocker):
     mock_mailbox_instance.fetch.return_value = [msg1, msg2, msg3]
 
     # Mock upload_to_cloud
-    mock_upload = mocker.patch("imap_client.upload_to_cloud")
+    mock_upload = MagicMock()
+    monkeypatch.setattr("imap_client.upload_to_cloud", mock_upload)
 
     last_date = datetime(2025, 1, 1)
     count = process_mailbox(config, last_date, db_conn)
@@ -74,21 +76,23 @@ def test_process_mailbox(config, db_conn, mocker):
 
     mock_upload.assert_not_called() # because msg2 and msg3 have no attachments
 
-def test_process_mailbox_with_attachments(config, db_conn, mocker):
+def test_process_mailbox_with_attachments(config, db_conn, monkeypatch):
     mock_mailbox_instance = MagicMock()
-    mocker.patch("imap_client.MailBox", return_value=mock_mailbox_instance)
+    mock_mailbox_class = MagicMock(return_value=mock_mailbox_instance)
+    monkeypatch.setattr("imap_client.MailBox", mock_mailbox_class)
     mock_mailbox_instance.login.return_value.__enter__.return_value = mock_mailbox_instance
 
     msg = MagicMock()
     msg.subject = "Subject"
     msg.from_ = "sender@test.com"
-    msg.message_id = "id1"
+    msg.uid = "id1"
     msg.date = datetime(2025, 1, 1, 10, 0, 0)
     att = MagicMock(filename="test.pdf", payload=b"pdf_content")
     msg.attachments = [att]
 
     mock_mailbox_instance.fetch.return_value = [msg]
-    mock_upload = mocker.patch("imap_client.upload_to_cloud")
+    mock_upload = MagicMock()
+    monkeypatch.setattr("imap_client.upload_to_cloud", mock_upload)
 
     process_mailbox(config, datetime(2025, 1, 1), db_conn)
 

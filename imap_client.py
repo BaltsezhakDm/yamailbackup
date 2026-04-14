@@ -29,7 +29,7 @@ def process_mailbox(cfg: Config, last_email_date: datetime, db_conn):
 
         counter = 0
         for subject, msg in unique_subjects.items():
-            if email_exists(db_conn, msg.message_id):
+            if email_exists(db_conn, msg.uid):
                 continue
 
             logger.info(f"Processing email: {msg.subject} from {msg.from_}")
@@ -46,7 +46,7 @@ def process_mailbox(cfg: Config, last_email_date: datetime, db_conn):
             # Save to DB
             email_to_save = Email(
                 id=None,
-                message_id=msg.message_id,
+                message_id=msg.uid,
                 subject=msg.subject,
                 from_email=msg.from_,
                 date=msg.date.strftime("%Y-%m-%d %H:%M:%S")
