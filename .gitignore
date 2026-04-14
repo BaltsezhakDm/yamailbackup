@@ -4,3 +4,5 @@ config/*
 .vscode
 messages.db
 crontab
+__pycache__/
+*.pyc
